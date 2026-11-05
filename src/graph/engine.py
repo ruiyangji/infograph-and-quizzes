@@ -160,6 +160,15 @@ class RealTimeGraphEngine:
             supporting_event_ids=[event_a.event_id, event_b.event_id],
         )
 
+    FALLBACK_REAL_ENTITIES = [
+        CanonicalEntity("ent_siemens_energy", "Siemens Energy Grid Tech", "ORGANIZATION", "energy_grid", ["Siemens Energy"]),
+        CanonicalEntity("ent_ge_vernova", "GE Vernova Electrification", "ORGANIZATION", "energy_grid", ["GE Vernova"]),
+        CanonicalEntity("ent_eaton_corp", "Eaton Electrical Sector", "ORGANIZATION", "energy_grid", ["Eaton"]),
+        CanonicalEntity("ent_asml", "ASML Holding", "ORGANIZATION", "ai_compute", ["ASML"]),
+        CanonicalEntity("ent_sk_hynix", "SK Hynix HBM Division", "ORGANIZATION", "ai_compute", ["SK Hynix"]),
+        CanonicalEntity("ent_micron", "Micron Technology", "ORGANIZATION", "ai_compute", ["Micron"]),
+    ]
+
     def get_distractor_entities(
         self,
         target_niche_id: str,
@@ -169,6 +178,7 @@ class RealTimeGraphEngine:
         '''
         Retrieves real, active entities from the graph in the target niche
         that are NOT linked to the source entity to serve as plausible distractors.
+        Falls back to prominent real-world industry entities when the live graph is still warming up.
         '''
         excluded = set(exclude_uids)
         candidates = [
@@ -176,6 +186,12 @@ class RealTimeGraphEngine:
             for e in self.entities.values()
             if e.uid not in excluded and (e.niche_id == target_niche_id or e.niche_id == "global")
         ]
+        for fb in self.FALLBACK_REAL_ENTITIES:
+            if len(candidates) >= count:
+                break
+            if fb.uid not in excluded and fb.uid not in {c.uid for c in candidates}:
+                if fb.niche_id == target_niche_id or len(candidates) < count:
+                    candidates.append(fb)
         return candidates[:count]
 
     def export_cytoscape_elements(self) -> Dict[str, List[Dict[str, Any]]]:
