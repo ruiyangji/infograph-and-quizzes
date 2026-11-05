@@ -153,3 +153,43 @@ async def stream_graph_events():
                 SSE_QUEUES.remove(q)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+from fastapi.responses import FileResponse
+from pathlib import Path
+import urllib.request
+
+@app.get("/")
+def serve_workbench():
+    return FileResponse(Path(__file__).resolve().parent.parent / "ui" / "index.html")
+
+class LiveSynthesizeRequest(BaseModel):
+    event_a: str
+    niche_a: str
+    event_b: str
+    niche_b: str
+    web2api_url: str = "http://localhost:6767/v1/chat/completions"
+
+@app.post("/api/synthesize")
+def synthesize_with_local_gemini(req: LiveSynthesizeRequest) -> Dict[str, Any]:
+    prompt = (
+        f"Connect Event A ({req.niche_a}): {req.event_a}\n"
+        f"With Event B ({req.niche_b}): {req.event_b}\n"
+        "Return strict JSON with keys: verb (BOTTLENECKS|SUPPLIES|REGULATES|AMPLIFIES), "
+        "confidence (int 70-98), mechanism (2 sentences), talkingPoint (1 sharp sentence)."
+    )
+    payload = json.dumps({
+        "model": "gemini-2.5-flash",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.3
+    }).encode("utf-8")
+    http_req = urllib.request.Request(
+        req.web2api_url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(http_req, timeout=30) as resp:
+        raw = json.loads(resp.read().decode("utf-8"))
+        content = raw["choices"][0]["message"]["content"] if "choices" in raw else raw.get("text", "{}")
+        cleaned = content.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        return json.loads(cleaned)
