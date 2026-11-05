@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexusPulse — Palantir Intelligence Graph & Adaptive Quiz Workbench</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #e2e8f0;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .grid-bg {
+      background-image: radial-gradient(rgba(56, 189, 248, 0.12) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      70% { transform: scale(1.35); opacity: 0; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
+    .pulse-ring {
+      animation: pulseRing 2s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-sky-500 selection:text-slate-950">
+
+  <!-- Top Tactical Header -->
+  <header class="border-b border-slate-800/80 bg-slate-950/90 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-sky-500/15 border border-sky-400/40 flex items-center justify-center text-sky-400 font-bold mono">
+          NP
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base sm:text-lg tracking-tight text-white">NexusPulse</h1>
+            <span class="text-[11px] mono uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Live ERKG + Elo v1.0</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Real-Time Cross-Niche Intelligence Graph &amp; Adaptive 72%-Flow Quiz Engine</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-lg border border-slate-800">
+        <button id="tab-btn-graph" data-tab="graph" class="nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition bg-sky-500 text-slate-950">
+          1. Palantir Graph Canvas
+        </button>
+        <button id="tab-btn-quiz" data-tab="quiz" class="nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition text-slate-300 hover:text-white">
+          2. Daily Kahoot Drill
+        </button>
+        <button id="tab-btn-studio" data-tab="studio" class="nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition text-slate-300 hover:text-white">
+          3. Niche Studio (Sources)
+        </button>
+        <button id="tab-btn-pocket" data-tab="pocket" class="nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition text-slate-300 hover:text-white">
+          4. Talking Points (<span id="saved-count-badge">3</span>)
+        </button>
+      </nav>
+
+      <!-- Live Elo & Streak Telemetry -->
+      <div class="flex items-center gap-3 text-xs mono">
+        <div class="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+          <span class="text-slate-400">Elo:</span>
+          <span id="header-elo-val" class="text-sky-400 font-semibold">1200</span>
+        </div>
+        <div class="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+          <span class="text-slate-400">Target P(Win):</span>
+          <span class="text-amber-300 font-semibold">72%</span>
+        </div>
+        <div class="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+          <span class="text-slate-400">Streak:</span>
+          <span id="header-streak-val" class="text-emerald-400 font-semibold">2</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Banner -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 hidden max-w-sm bg-slate-900/95 border border-sky-500/50 text-slate-100 px-4 py-3 rounded-xl shadow-2xl text-xs flex items-center gap-3">
+    <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+    <span id="toast-message">Event ingested into live graph.</span>
+  </div>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-5">
+
+    <!-- =================================================================== -->
+    <!-- VIEW 1: PALANTIR-STYLE INTERACTIVE GRAPH WORKBENCH                  -->
+    <!-- =================================================================== -->
+    <section id="view-graph" class="space-y-4">
+      <!-- Stream Control Bar -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 mr-1">Subscribed Niches:</span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-sky-500/15 text-sky-300 border border-sky-500/30">
+            <span class="w-2 h-2 rounded-full bg-sky-400"></span> AI Compute &amp; Semiconductors
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span> Energy Grid &amp; Industrials
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Geopolitics &amp; Trade Policy
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/15 text-purple-300 border border-purple-500/30">
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span> Synthetic Bio &amp; Pharma
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-simulate-ingest" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs transition flex items-center gap-1.5 shadow-lg shadow-sky-500/10">
+            <span>+ Ingest Breaking X / NYT Event</span>
+          </button>
+          <button id="btn-reset-graph" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs transition">
+            Reset Layout
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Graph + Dossier Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Force-Directed Graph Canvas -->
+        <div class="lg:col-span-8 bg-slate-950 border border-slate-800 rounded-xl relative overflow-hidden grid-bg flex flex-col" style="min-height: 490px;">
+          <div class="px-4 py-2.5 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="mono text-slate-300">ONTOLOGY STREAM: ACTIVE</span>
+              <span id="graph-stats-label" class="text-slate-400 mono ml-2">Nodes: 7 | Cross-Niche Links: 5</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <label for="timeline-slider" class="text-slate-400 mono">Window:</label>
+              <input id="timeline-slider" type="range" min="1" max="30" value="30" class="w-24 accent-sky-400 cursor-pointer" />
+              <span id="timeline-label" class="mono text-sky-400 w-14">30 Days</span>
+            </div>
+          </div>
+
+          <div class="relative flex-1 w-full">
+            <canvas id="ontology-canvas" class="w-full h-[430px] block cursor-grab active:cursor-grabbing"></canvas>
+            <div class="absolute bottom-3 left-3 bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-2 text-[11px] text-slate-400 max-w-md pointer-events-none">
+              Tip: Click any <strong class="text-slate-200">Entity Node</strong> or <strong class="text-sky-300">Relationship Edge</strong> to inspect its NYT / X source attribution, causal mechanism, and conversational talking point.
+            </div>
+          </div>
+        </div>
+
+        <!-- Intelligence Dossier Drawer -->
+        <div class="lg:col-span-4 bg-slate-900/85 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div>
+                <span class="text-[10px] mono uppercase tracking-widest text-sky-400">Palantir Dossier Card</span>
+                <h2 id="dossier-title" class="text-base font-bold text-white mt-0.5">TSMC ↔ Grid Transformers</h2>
+              </div>
+              <span id="dossier-badge" class="text-[11px] mono px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                BOTTLENECKS (89%)
+              </span>
+            </div>
+
+            <!-- Source Attribution Pills -->
+            <div class="space-y-1.5">
+              <div class="text-xs font-medium text-slate-400">Pinned Source Provenance:</div>
+              <div id="dossier-sources" class="space-y-1.5 text-xs">
+                <div class="p-2 rounded-lg bg-slate-950 border border-slate-800/90 flex items-start justify-between gap-2">
+                  <div>
+                    <span class="mono text-sky-400 font-semibold">@karpathy (X Whitelist)</span>
+                    <p class="text-slate-300 mt-0.5">Rack-scale AI clusters double liquid cooling &amp; step-down power draw requirements.</p>
+                  </div>
+                </div>
+                <div class="p-2 rounded-lg bg-slate-950 border border-slate-800/90 flex items-start justify-between gap-2">
+                  <div>
+                    <span class="mono text-amber-300 font-semibold">NYT Climate &amp; Energy</span>
+                    <p class="text-slate-300 mt-0.5">Grain-oriented electrical steel shortage stretches US utility transformer queues past 36 months.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Multi-Hop Mechanism -->
+            <div class="p-3 rounded-lg bg-slate-950/90 border border-slate-800 space-y-1">
+              <div class="text-[11px] mono uppercase text-slate-400">Cross-Niche Causal Mechanism</div>
+              <p id="dossier-mechanism" class="text-xs text-slate-200 leading-relaxed">
+                Hyperscaler AI cluster buildouts in AI Compute collide directly with municipal substation transformer shortages in Energy Grid due to shared grain-oriented electrical steel bottlenecks.
+              </p>
+            </div>
+
+            <!-- Conversational Currency Card -->
+            <div class="p-3.5 rounded-xl bg-gradient-to-br from-sky-500/15 via-slate-900 to-slate-950 border border-sky-500/40 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] mono uppercase font-semibold text-sky-300">Pocket Talking Point</span>
+                <button id="btn-bookmark-dossier" class="text-[11px] px-2 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/30 transition">
+                  + Save to Pocket
+                </button>
+              </div>
+              <blockquote id="dossier-talking-point" class="text-xs sm:text-sm font-medium text-white italic leading-relaxed">
+                "Everyone is modeling GPU wafer yields at TSMC, but the actual binding constraint on 2027 AI cluster deployment is a 36-month backlog on high-voltage substation transformers."
+              </blockquote>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+            <button id="btn-test-this-link" class="w-full py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs transition">
+              Launch Quiz Drill on This Connection →
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- VIEW 2: DAILY KAHOOT-STYLE ADAPTIVE DRILL                           -->
+    <!-- =================================================================== -->
+    <section id="view-quiz" class="hidden max-w-3xl mx-auto space-y-5">
+      <!-- Elo Calibration Header Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="quiz-tier-badge" class="px-2.5 py-0.5 rounded text-xs font-semibold mono bg-sky-500/20 text-sky-300 border border-sky-500/30">
+              TIER 2 · 2-HOP CROSS-NICHE LINK
+            </span>
+            <span id="quiz-Counter-label" class="text-xs mono text-slate-400">Question 1 of 4</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">
+            Calibrated via Guessing-Corrected Multivariate Elo (<span class="mono text-slate-200">P(guess)=0.25</span>) to keep accuracy in the 70–75% flow zone.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="text-right">
+            <div class="text-[11px] text-slate-400 mono">Question Elo</div>
+            <div id="quiz-q-elo" class="text-sm font-bold mono text-amber-300">1135</div>
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] text-slate-400 mono">Timer</div>
+            <div id="quiz-timer-display" class="text-base font-extrabold mono text-emerald-400">20s</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question Prompt Card -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-5 shadow-xl">
+        <div class="flex items-center justify-between text-xs text-slate-400 mono">
+          <span id="quiz-source-pill">Sources: @karpathy (X) × NYT Climate</span>
+          <span id="quiz-niche-bridge">AI Compute ↔ Energy Grid</span>
+        </div>
+
+        <h3 id="quiz-prompt-text" class="text-lg sm:text-xl font-bold text-white leading-snug">
+          Connect the dots: Hyperscalers just doubled rack power density on next-gen AI clusters. Based on this morning's NYT industrial supply report, which cross-niche component faces an immediate 36-month delivery bottleneck?
+        </h3>
+
+        <!-- 4 Kahoot-Style Options Grid -->
+        <div id="quiz-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <!-- Feedback & Talking Point Reveal Box -->
+        <div id="quiz-feedback-box" class="hidden rounded-xl p-4 border space-y-3">
+          <div class="flex items-center justify-between">
+            <span id="quiz-feedback-status" class="font-bold text-sm"></span>
+            <span id="quiz-elo-delta" class="mono text-xs px-2 py-0.5 rounded bg-slate-900"></span>
+          </div>
+          <p id="quiz-feedback-explanation" class="text-xs sm:text-sm text-slate-200 leading-relaxed"></p>
+          <div class="p-3 rounded-lg bg-slate-950/90 border border-sky-500/30">
+            <div class="text-[11px] mono uppercase text-sky-400 font-semibold">Conversational One-Liner to Use Today:</div>
+            <p id="quiz-feedback-oneliner" class="text-xs sm:text-sm text-white italic mt-1"></p>
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <button id="btn-save-quiz-point" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-sky-300 transition">
+              + Bookmark Talking Point
+            </button>
+            <button id="btn-next-question" class="px-4 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs transition">
+              Next Question →
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- VIEW 3: NICHE STUDIO & GRANULAR SOURCE CURATION                     -->
+    <!-- =================================================================== -->
+    <section id="view-studio" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Create / Configure Niche Policy Form -->
+        <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-xl p-5 space-y-4">
+          <div>
+            <span class="text-[11px] mono uppercase text-sky-400">Source Gatekeeper Studio</span>
+            <h2 class="text-lg font-bold text-white">Configure Niche &amp; Source Rules</h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Lock a niche strictly to your pinned X handles and NYT sections, or run Hybrid Discovery with natural-language guardrails.
+            </p>
+          </div>
+
+          <form id="niche-studio-form" class="space-y-3.5">
+            <div>
+              <label for="input-niche-name" class="block text-xs font-medium text-slate-300 mb-1">Niche Name</label>
+              <input id="input-niche-name" type="text" required placeholder="e.g., Autonomous Maritime & Port Logistics" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-sky-500" />
+            </div>
+
+            <div>
+              <label for="select-curation-mode" class="block text-xs font-medium text-slate-300 mb-1">Source Filtering Mode</label>
+              <select id="select-curation-mode" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-sky-500">
+                <option value="STRICT_WHITELIST">STRICT WHITELIST (Only pick from my pinned sources)</option>
+                <option value="HYBRID_DISCOVERY">HYBRID DISCOVERY (Pinned sources + AI Scout breakthroughs)</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="input-pinned-sources" class="block text-xs font-medium text-slate-300 mb-1">Pinned X Handles, NYT Sections &amp; RSS (comma-separated)</label>
+              <input id="input-pinned-sources" type="text" required placeholder="@typesfast, nyt:business, nyt:technology, https://semiengineering.com/feed" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-sky-500" />
+            </div>
+
+            <div>
+              <label for="input-nl-guardrail" class="block text-xs font-medium text-slate-300 mb-1">Natural-Language Inclusion / Exclusion Guardrail</label>
+              <textarea id="input-nl-guardrail" rows="2" placeholder="Only pick articles analyzing supply bottlenecks or regulatory shifts; ignore stock price commentary." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-sky-500"></textarea>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 px-4 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs sm:text-sm transition">
+              + Save Niche &amp; Activate Gatekeeper Policy
+            </button>
+          </form>
+        </div>
+
+        <!-- Active Subscribed Niches & Live Gatekeeper Test Simulator -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-white">Active Subscribed Niches</h3>
+              <span id="active-niche-count" class="text-xs mono text-sky-400">4 Active Policies</span>
+            </div>
+            <div id="niche-cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Gatekeeper Policy Tester -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[11px] mono uppercase text-emerald-400">Semantic Gatekeeper Simulator</span>
+                <h4 class="text-sm font-bold text-white">Test How Your Whitelist Filters Incoming News</h4>
+              </div>
+              <button id="btn-run-gatekeeper-test" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-medium transition">
+                Run Gatekeeper Audit
+              </button>
+            </div>
+            <div id="gatekeeper-audit-log" class="space-y-2 text-xs mono">
+              <div class="p-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                [PASS] @karpathy (X) → Admitted to 'AI Compute' via STRICT_WHITELIST.
+              </div>
+              <div class="p-2.5 rounded bg-slate-900 border border-rose-900/60 text-rose-300">
+                [DROP] @crypto_hype_99 (X) → Rejected by 'AI Compute' STRICT_WHITELIST (Not in pinned handles).
+              </div>
+              <div class="p-2.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                [PASS] nyt:climate → Admitted to 'Energy Grid' via NYT Top Stories v2 connector.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- VIEW 4: POCKET TALKING POINTS DECK                                  -->
+    <!-- =================================================================== -->
+    <section id="view-pocket" class="hidden max-w-4xl mx-auto space-y-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <span class="text-[11px] mono uppercase text-sky-400">Conversational Currency Deck</span>
+          <h2 class="text-lg font-bold text-white">Your Saved One-Liners &amp; Cross-Niche Threads</h2>
+          <p class="text-xs text-slate-400">Review these in 30 seconds before stepping into a meeting, podcast, or dinner.</p>
+        </div>
+      </div>
+
+      <div id="pocket-cards-list" class="space-y-3">
+        <!-- Populated dynamically via JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // =========================================================================
+    // APPLICATION STATE & SEED DATA
+    // =========================================================================
+    const state = {
+      activeTab: 'graph',
+      userElo: 1200,
+      streak: 2,
+      attempts: 4,
+      timelineDays: 30,
+      selectedNodeId: 'ent_tsmc',
+      selectedEdgeId: 'edge_1',
+      currentQuestionIndex: 0,
+      timerSeconds: 20,
+      timerInterval: null,
+      quizAnswered: false,
+
+      niches: [
+        {
+          id: 'ai_compute',
+          name: 'AI Compute & Semiconductors',
+          mode: 'STRICT_WHITELIST',
+          color: '#38bdf8',
+          sources: ['@karpathy', '@semiengineering', 'nyt:technology'],
+          rule: 'Focus on CoWoS packaging, HBM3e yields, and rack power density; exclude consumer gadget reviews.'
+        },
+        {
+          id: 'energy_grid',
+          name: 'Energy Grid & Industrials',
+          mode: 'HYBRID_DISCOVERY',
+          color: '#fbbf24',
+          sources: ['nyt:climate', 'nyt:business', 'GridBrief RSS'],
+          rule: 'Track high-voltage transformers, grain-oriented electrical steel, and utility interconnect queues.'
+        },
+        {
+          id: 'geopolitics',
+          name: 'Geopolitics & Trade Policy',
+          mode: 'STRICT_WHITELIST',
+          color: '#34d399',
+          sources: ['nyt:world', '@TradePolicyWatch', 'EU Official Journal'],
+          rule: 'Export controls on critical minerals, maritime insurance, and sovereign subsidies.'
+        },
+        {
+          id: 'synbio',
+          name: 'Synthetic Bio & Pharma',
+          mode: 'HYBRID_DISCOVERY',
+          color: '#c084fc',
+          sources: ['nyt:science', '@statnews', 'bioRxiv Molecular'],
+          rule: 'Protein folding compute demand, enzymatic DNA synthesis, and cold-chain reagents.'
+        }
+      ],
+
+      nodes: [
+        { id: 'ent_tsmc', label: 'TSMC CoWoS', niche: 'ai_compute', color: '#38bdf8', x: 240, y: 180, vx: 0, vy: 0, radius: 22, daysAgo: 2, source: '@karpathy (X)' },
+        { id: 'ent_grid_tx', label: 'HV Grid Transformers', niche: 'energy_grid', color: '#fbbf24', x: 460, y: 150, vx: 0, vy: 0, radius: 24, daysAgo: 1, source: 'NYT Climate' },
+        { id: 'ent_gallium', label: 'Gallium Export Curbs', niche: 'geopolitics', color: '#34d399', x: 180, y: 320, vx: 0, vy: 0, radius: 20, daysAgo: 5, source: 'NYT World' },
+        { id: 'ent_hbm3e', label: 'HBM3e Memory Stack', niche: 'ai_compute', color: '#38bdf8', x: 350, y: 290, vx: 0, vy: 0, radius: 19, daysAgo: 3, source: '@semiengineering (X)' },
+        { id: 'ent_crispr', label: 'AlphaFold Bio-Clusters', niche: 'synbio', color: '#c084fc', x: 540, y: 290, vx: 0, vy: 0, radius: 20, daysAgo: 7, source: 'NYT Science' },
+        { id: 'ent_smr', label: 'Modular Nuclear (SMR)', niche: 'energy_grid', color: '#fbbf24', x: 610, y: 180, vx: 0, vy: 0, radius: 19, daysAgo: 12, source: 'NYT Business' },
+        { id: 'ent_eu_ai', label: 'EU AI Compute Registry', niche: 'geopolitics', color: '#34d399', x: 370, y: 90, vx: 0, vy: 0, radius: 18, daysAgo: 18, source: 'EU Official Journal' }
+      ],
+
+      edges: [
+        {
+          id: 'edge_1',
+          source: 'ent_tsmc',
+          target: 'ent_grid_tx',
+          verb: 'BOTTLENECKS',
+          confidence: 89,
+          daysAgo: 2,
+          sources: [
+            { tag: '@karpathy (X Whitelist)', text: 'Rack-scale AI clusters double liquid cooling & step-down power draw requirements.' },
+            { tag: 'NYT Climate & Energy', text: 'Grain-oriented electrical steel shortage stretches US utility transformer queues past 36 months.' }
+          ],
+          mechanism: 'Hyperscaler AI cluster buildouts in AI Compute collide directly with municipal substation transformer shortages in Energy Grid due to shared grain-oriented electrical steel bottlenecks.',
+          talkingPoint: 'Everyone is modeling GPU wafer yields at TSMC, but the actual binding constraint on 2027 AI cluster deployment is a 36-month backlog on high-voltage substation transformers.'
+        },
+        {
+          id: 'edge_2',
+          source: 'ent_gallium',
+          target: 'ent_hbm3e',
+          verb: 'SUPPLIES',
+          confidence: 86,
+          daysAgo: 5,
+          sources: [
+            { tag: 'NYT World', text: 'New export licensing rules tighten shipments of refined gallium and germanium substrates.' },
+            { tag: '@semiengineering (X)', text: 'Power electronics in high-density memory test equipment rely on GaN power switching.' }
+          ],
+          mechanism: 'Export licensing on refined gallium raises lead times for GaN power switching modules used inside high-frequency HBM3e wafer burn-in test rigs.',
+          talkingPoint: 'The gallium export curb is not just a telecom story—it quietly bottlenecks the high-frequency burn-in test rigs needed to validate HBM3e memory stacks.'
+        },
+        {
+          id: 'edge_3',
+          source: 'ent_hbm3e',
+          target: 'ent_crispr',
+          verb: 'AMPLIFIES',
+          confidence: 82,
+          daysAgo: 7,
+          sources: [
+            { tag: '@semiengineering (X)', text: 'HBM3e bandwidth per rack crosses 40 TB/s in latest cluster interconnects.' },
+            { tag: 'NYT Science', text: 'Generative protein-ligand diffusion models shift from compute-bound to memory-bandwidth-bound.' }
+          ],
+          mechanism: 'Expanded HBM3e memory capacity per node allows whole-proteome generative docking runs to stay in SRAM/HBM without PCIe swap penalties.',
+          talkingPoint: 'Biotech wet-lab automation is suddenly riding the HBM3e memory wave because protein-ligand diffusion models are memory-bandwidth bound, not FLOP bound.'
+        },
+        {
+          id: 'edge_4',
+          source: 'ent_grid_tx',
+          target: 'ent_smr',
+          verb: 'COMPETES_WITH',
+          confidence: 84,
+          daysAgo: 12,
+          sources: [
+            { tag: 'NYT Climate', text: 'Regional transmission operators cap new 300MW grid interconnect approvals through 2029.' },
+            { tag: 'NYT Business', text: 'Data center operators sign behind-the-meter co-location term sheets with SMR developers.' }
+          ],
+          mechanism: 'Multi-year substation transformer delays force hyperscalers to bypass public transmission queues via behind-the-meter modular nuclear co-location.',
+          talkingPoint: 'Behind-the-meter nuclear deals are accelerating not because nuclear got cheap overnight, but because waiting for a public utility substation interconnect takes four years.'
+        },
+        {
+          id: 'edge_5',
+          source: 'ent_eu_ai',
+          target: 'ent_tsmc',
+          verb: 'REGULATES',
+          confidence: 79,
+          daysAgo: 18,
+          sources: [
+            { tag: 'EU Official Journal', text: 'Mandatory FLOP reporting thresholds introduced for frontier training runs.' },
+            { tag: 'NYT Technology', text: 'Cloud providers segment regional sovereign clusters to streamline compliance audits.' }
+          ],
+          mechanism: 'Compute reporting mandates incentivize fragmented regional cluster builds, increasing aggregate overhead demand for CoWoS advanced packaging.',
+          talkingPoint: 'Sovereign AI compliance rules actually increase total chip demand because regionalized clusters cannot pool idle GPU capacity across borders.'
+        }
+      ],
+
+      simulatedEventsQueue: [
+        {
+          node: { id: 'ent_redsea', label: 'Red Sea Hull Insurance', niche: 'geopolitics', color: '#34d399', x: 160, y: 120, vx: 0, vy: 0, radius: 21, daysAgo: 1, source: 'NYT World' },
+          edge: {
+            id: 'edge_sim_1',
+            source: 'ent_redsea',
+            target: 'ent_tsmc',
+            verb: 'BOTTLENECKS',
+            confidence: 91,
+            daysAgo: 1,
+            sources: [
+              { tag: 'NYT World (Live Stream)', text: 'Maritime war-risk premiums spike 40% for specialized chemical tankers transiting Suez.' },
+              { tag: '@semiengineering (X)', text: 'Ultra-pure European specialty photoresists and precursors face 14-day Cape of Good Hope rerouting.' }
+            ],
+            mechanism: 'Maritime insurance spikes force specialty chemical tankers around the Cape of Good Hope, tightening safety buffers for ultra-pure EUV lithography precursors.',
+            talkingPoint: 'Maritime insurance spikes in the Red Sea have a sneaky second-order link to semiconductor fabs by adding two weeks of transit time to specialty European chemical precursors.'
+          }
+        },
+        {
+          node: { id: 'ent_water_chill', label: 'Municipal Water Permits', niche: 'energy_grid', color: '#fbbf24', x: 520, y: 360, vx: 0, vy: 0, radius: 21, daysAgo: 1, source: 'NYT Climate' },
+          edge: {
+            id: 'edge_sim_2',
+            source: 'ent_water_chill',
+            target: 'ent_crispr',
+            verb: 'REGULATES',
+            confidence: 83,
+            daysAgo: 1,
+            sources: [
+              { tag: 'NYT Climate (Live Stream)', text: 'Southwest municipalities cap evaporative water consumption for commercial industrial parks.' },
+              { tag: 'NYT Science', text: 'Bio-foundry scale-up facilities require closed-loop Adiabatic chilling to secure county permits.' }
+            ],
+            mechanism: 'Municipal evaporative water restrictions force both AI data centers and automated bio-foundries into closed-loop dry coolers, raising capex per megawatt by 18%.',
+            talkingPoint: 'Water rights—not land or tax credits—are becoming the quiet veto point for where next-generation bio-foundries and AI clusters can break ground.'
+          }
+        }
+      ],
+
+      questions: [
+        {
+          id: 'q_1',
+          tier: 'TIER 2 · 2-HOP CROSS-NICHE LINK',
+          difficultyElo: 1140,
+          sources: '@karpathy (X) × NYT Climate',
+          bridge: 'AI Compute ↔ Energy Grid',
+          prompt: 'Hyperscalers just doubled rack power density on next-gen AI clusters. Based on this morning\'s NYT industrial supply report, which cross-niche component faces an immediate 36-month delivery bottleneck?',
+          options: [
+            { id: 'opt_1', text: 'High-Voltage Substation Transformers (Grain-oriented electrical steel shortage)', isCorrect: true, rationale: 'Correct! Grain-oriented electrical steel bottlenecks stretch utility step-down transformer queues past 36 months.' },
+            { id: 'opt_2', text: 'Standard Single-Mode Fiber Optic Patch Cables (Corning carrier backlog)', isCorrect: false, rationale: 'Plausible distractor from telecom headlines, but optical patch cables have <8 week lead times and do not gate power delivery.' },
+            { id: 'opt_3', text: 'Lithium Iron Phosphate (LFP) Stationary Rack Cells', isCorrect: false, rationale: 'Trap option: LFP cell manufacturing actually has global overcapacity this quarter, whereas high-voltage transformers remain the true grid bottleneck.' },
+            { id: 'opt_4', text: 'PCIe Gen 6 Retimer Silicon Chips', isCorrect: false, rationale: 'Plausible within AI Compute, but retimers scale with wafer starts rather than municipal utility steel supply.' }
+          ],
+          oneLiner: 'Everyone is modeling GPU wafer yields at TSMC, but the actual binding constraint on 2027 AI cluster deployment is a 36-month backlog on high-voltage substation transformers.'
+        },
+        {
+          id: 'q_2',
+          tier: 'TIER 3 · SECOND-ORDER TRAP',
+          difficultyElo: 1265,
+          sources: 'NYT World × @semiengineering (X)',
+          bridge: 'Geopolitics ↔ AI Compute',
+          prompt: 'New export licensing rules tightened shipments of refined gallium this week. Where does this create a non-obvious bottleneck inside the AI memory supply chain?',
+          options: [
+            { id: 'opt_1', text: 'High-frequency GaN power switches inside HBM3e wafer burn-in test rigs', isCorrect: true, rationale: 'Spot on! Silicon DRAM wafers themselves don\'t contain gallium, but the high-frequency automated test equipment validating HBM3e stacks relies on GaN power electronics.' },
+            { id: 'opt_2', text: 'Bulk silicon wafer boules used for standard DDR5 server memory', isCorrect: false, rationale: 'Trap: Standard DRAM boules are pure silicon (Si), not gallium arsenide or gallium nitride.' },
+            { id: 'opt_3', text: 'Extreme Ultraviolet (EUV) tin-droplet laser mirrors at ASML', isCorrect: false, rationale: 'Plausible semiconductor buzzword, but EUV light sources use molten tin (Sn) droplets and molybdenum-silicon mirrors.' },
+            { id: 'opt_4', text: 'Copper interconnects on printed circuit motherboards', isCorrect: false, rationale: 'Incorrect: PCB copper traces do not depend on refined gallium supplies.' }
+          ],
+          oneLiner: 'The gallium export curb is not just a telecom story—it quietly bottlenecks the high-frequency GaN burn-in test rigs needed to validate HBM3e memory stacks.'
+        },
+        {
+          id: 'q_3',
+          tier: 'TIER 2 · 2-HOP CROSS-NICHE LINK',
+          difficultyElo: 1190,
+          sources: '@semiengineering (X) × NYT Science',
+          bridge: 'AI Compute ↔ Synthetic Bio',
+          prompt: 'HBM3e memory bandwidth per server rack just crossed 40 TB/s. Which computational bottleneck in Synthetic Biology does this directly unlock?',
+          options: [
+            { id: 'opt_1', text: 'Whole-proteome generative protein-ligand diffusion runs (which are memory-bandwidth bound)', isCorrect: true, rationale: 'Correct! Generative molecular docking is bottlenecked by moving massive 3D attention tensors across memory buses rather than raw arithmetic FLOPs.' },
+            { id: 'opt_2', text: 'Cold-chain mRNA lipid nanoparticle freezer storage temperatures', isCorrect: false, rationale: 'Physical wet-lab storage thermodynamics are unrelated to HBM3e memory bandwidth.' },
+            { id: 'opt_3', text: 'Sanger capillary electrophoresis DNA readout speed', isCorrect: false, rationale: 'Legacy wet-lab sequencing chemistry is fluidics-limited, not HBM-bandwidth limited.' },
+            { id: 'opt_4', text: 'FDA Phase III clinical patient recruitment timelines', isCorrect: false, rationale: 'Clinical recruitment logistics are regulatory and demographic, not hardware-memory bound.' }
+          ],
+          oneLiner: 'Biotech drug discovery is riding the HBM3e memory wave because 3D protein-ligand diffusion models are memory-bandwidth bound, not FLOP bound.'
+        },
+        {
+          id: 'q_4',
+          tier: 'TIER 3 · COUNTER-INTUITIVE MECHANISM',
+          difficultyElo: 1310,
+          sources: 'EU Official Journal × NYT Technology',
+          bridge: 'Geopolitics ↔ AI Compute',
+          prompt: 'Consensus assumes strict regional AI compliance and data-residency rules will slow down GPU hardware purchases. Why do they actually increase near-term CoWoS chip demand?',
+          options: [
+            { id: 'opt_1', text: 'Sovereign residency rules prevent cross-border workload pooling, forcing redundant regional cluster buildouts', isCorrect: true, rationale: 'Exact mechanism! When cloud providers cannot dynamically pool idle GPU capacity across jurisdictions, each region must over-provision peak capacity.' },
+            { id: 'opt_2', text: 'Compliance rules mandate replacing all 8-bit quantized weights with 64-bit scientific floats', isCorrect: false, rationale: 'Trap: Regulatory thresholds track aggregate training FLOPs and data governance, not mandatory FP64 precision.' },
+            { id: 'opt_3', text: 'Regulators require physically destroying GPU racks after every frontier training run', isCorrect: false, rationale: 'Absurd decoy—hardware is reused across training and inference lifecycles.' },
+            { id: 'opt_4', text: 'Tariffs make electricity free for sovereign data centers in Europe', isCorrect: false, rationale: 'European industrial power tariffs remain among the highest globally.' }
+          ],
+          oneLiner: 'Sovereign AI compliance rules actually increase total chip demand because regionalized clusters cannot pool idle GPU capacity across borders.'
+        }
+      ],
+
+      savedTalkingPoints: [
+        {
+          id: 'tp_1',
+          bridge: 'AI Compute ↔ Energy Grid',
+          sources: '@karpathy (X) × NYT Climate',
+          text: 'Everyone is modeling GPU wafer yields at TSMC, but the actual binding constraint on 2027 AI cluster deployment is a 36-month backlog on high-voltage substation transformers.'
+        },
+        {
+          id: 'tp_2',
+          bridge: 'Geopolitics ↔ AI Compute',
+          sources: 'NYT World × @semiengineering (X)',
+          text: 'The gallium export curb is not just a telecom story—it quietly bottlenecks the high-frequency burn-in test rigs needed to validate HBM3e memory stacks.'
+        },
+        {
+          id: 'tp_3',
+          bridge: 'AI Compute ↔ Synthetic Bio',
+          sources: '@semiengineering (X) × NYT Science',
+          text: 'Biotech wet-lab automation is riding the HBM3e memory wave because 3D protein-ligand diffusion models are memory-bandwidth bound, not FLOP bound.'
+        }
+      ]
+    };
+
+    // =========================================================================
+    // TOAST NOTIFICATION HELPER
+    // =========================================================================
+    let toastTimeout = null;
+    function showToast(msg) {
+      const container = document.getElementById('toast-container');
+      const textEl = document.getElementById('toast-message');
+      textEl.textContent = msg;
+      container.classList.remove('hidden');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        container.classList.add('hidden');
+      }, 3600);
+    }
+
+    // =========================================================================
+    // TAB NAVIGATION
+    // =========================================================================
+    function switchTab(tabName) {
+      state.activeTab = tabName;
+      const views = ['graph', 'quiz', 'studio', 'pocket'];
+      views.forEach(v => {
+        const section = document.getElementById('view-' + v);
+        if (v === tabName) {
+          section.classList.remove('hidden');
+        } else {
+          section.classList.add('hidden');
+        }
+      });
+
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.className = 'nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition bg-sky-500 text-slate-950';
+        } else {
+          btn.className = 'nav-tab-btn px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition text-slate-300 hover:text-white';
+        }
+      });
+
+      if (tabName === 'quiz') {
+        renderCurrentQuizQuestion();
+      } else {
+        if (state.timerInterval) clearInterval(state.timerInterval);
+      }
+    }
+
+    // =========================================================================
+    // PALANTIR FORCE-DIRECTED GRAPH CANVAS ENGINE
+    // =========================================================================
+    const canvas = document.getElementById('ontology-canvas');
+    const ctx = canvas.getContext('2d');
+    let draggingNode = null;
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width || 720;
+      canvas.height = 430;
+    }
+
+    function visibleNodes() {
+      return state.nodes.filter(n => n.daysAgo <= state.timelineDays);
+    }
+
+    function visibleEdges() {
+      const vNodeIds = new Set(visibleNodes().map(n => n.id));
+      return state.edges.filter(e => e.daysAgo <= state.timelineDays && vNodeIds.has(e.source) && vNodeIds.has(e.target));
+    }
+
+    function stepPhysics() {
+      const nodes = visibleNodes();
+      const edges = visibleEdges();
+
+      // Repulsion between nodes
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i];
+          const b = nodes[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const distSq = Math.max(400, dx * dx + dy * dy);
+          const force = 2200 / distSq;
+          const dist = Math.sqrt(distSq);
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+          if (a !== draggingNode) { a.vx -= fx; a.vy -= fy; }
+          if (b !== draggingNode) { b.vx += fx; b.vy += fy; }
+        }
+      }
+
+      // Spring attraction along edges
+      edges.forEach(edge => {
+        const s = nodes.find(n => n.id === edge.source);
+        const t = nodes.find(n => n.id === edge.target);
+        if (!s || !t) return;
+        const dx = t.x - s.x;
+        const dy = t.y - s.y;
+        const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        const targetDist = 175;
+        const spring = (dist - targetDist) * 0.008;
+        const fx = (dx / dist) * spring;
+        const fy = (dy / dist) * spring;
+        if (s !== draggingNode) { s.vx += fx; s.vy += fy; }
+        if (t !== draggingNode) { t.vx -= fx; t.vy -= fy; }
+      });
+
+      // Center gravity and velocity damping
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      nodes.forEach(n => {
+        if (n === draggingNode) return;
+        n.vx += (cx - n.x) * 0.0015;
+        n.vy += (cy - n.y) * 0.0015;
+        n.vx *= 0.82;
+        n.vy *= 0.82;
+        n.x = Math.max(45, Math.min(canvas.width - 45, n.x + n.vx));
+        n.y = Math.max(40, Math.min(canvas.height - 40, n.y + n.vy));
+      });
+    }
+
+    function drawGraph() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const nodes = visibleNodes();
+      const edges = visibleEdges();
+
+      // Draw edges
+      edges.forEach(edge => {
+        const s = nodes.find(n => n.id === edge.source);
+        const t = nodes.find(n => n.id === edge.target);
+        if (!s || !t) return;
+
+        const isSelected = edge.id === state.selectedEdgeId;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(t.x, t.y);
+        ctx.strokeStyle = isSelected ? '#38bdf8' : 'rgba(148, 163, 184, 0.38)';
+        ctx.lineWidth = isSelected ? 2.8 : 1.5;
+        ctx.stroke();
+
+        // Midpoint verb pill
+        const mx = (s.x + t.x) / 2;
+        const my = (s.y + t.y) / 2;
+        ctx.font = '600 10px "JetBrains Mono", monospace';
+        const label = edge.verb + ' (' + edge.confidence + '%)';
+        const textWidth = ctx.measureText(label).width;
+        ctx.fillStyle = isSelected ? '#0284c7' : '#0f172a';
+        ctx.strokeStyle = isSelected ? '#38bdf8' : '#334155';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(mx - textWidth / 2 - 6, my - 9, textWidth + 12, 18, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isSelected ? '#ffffff' : '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, mx, my);
+        ctx.restore();
+      });
+
+      // Draw nodes
+      nodes.forEach(node => {
+        const isSelected = node.id === state.selectedNodeId;
+        ctx.save();
+
+        // Outer glow halo
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius + (isSelected ? 7 : 3), 0, Math.PI * 2);
+        ctx.fillStyle = node.color + (isSelected ? '44' : '1a');
+        ctx.fill();
+
+        // Core node circle
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.lineWidth = isSelected ? 3 : 2;
+        ctx.strokeStyle = node.color;
+        ctx.stroke();
+
+        // Source badge tag above node
+        ctx.font = '500 9px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.fillText(node.source, node.x, node.y - node.radius - 7);
+
+        // Node title below node
+        ctx.font = '600 11px "Inter", sans-serif';
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText(node.label, node.x, node.y + node.radius + 14);
+        ctx.restore();
+      });
+    }
+
+    function animateLoop() {
+      stepPhysics();
+      drawGraph();
+      requestAnimationFrame(animateLoop);
+    }
+
+    function updateDossierFromEdge(edge) {
+      if (!edge) return;
+      state.selectedEdgeId = edge.id;
+      const sNode = state.nodes.find(n => n.id === edge.source);
+      const tNode = state.nodes.find(n => n.id === edge.target);
+      state.selectedNodeId = sNode ? sNode.id : null;
+
+      document.getElementById('dossier-title').textContent =
+        (sNode ? sNode.label : edge.source) + ' ↔ ' + (tNode ? tNode.label : edge.target);
+      document.getElementById('dossier-badge').textContent =
+        edge.verb + ' (' + edge.confidence + '%)';
+      document.getElementById('dossier-mechanism').textContent = edge.mechanism;
+      document.getElementById('dossier-talking-point').textContent = '"' + edge.talkingPoint + '"';
+
+      const sourcesContainer = document.getElementById('dossier-sources');
+      sourcesContainer.innerHTML = edge.sources.map(s => `
+        <div class="p-2 rounded-lg bg-slate-950 border border-slate-800/90">
+          <span class="mono text-sky-400 font-semibold">${s.tag}</span>
+          <p class="text-slate-300 mt-0.5">${s.text}</p>
+        </div>
+      `).join('');
+    }
+
+    function updateGraphStats() {
+      const nCount = visibleNodes().length;
+      const eCount = visibleEdges().length;
+      document.getElementById('graph-stats-label').textContent =
+        `Nodes: ${nCount} | Cross-Niche Links: ${eCount}`;
+    }
+
+    // Canvas mouse interactions
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const nodes = visibleNodes();
+      const edges = visibleEdges();
+
+      // Check node hit
+      for (const n of nodes) {
+        const dx = mx - n.x;
+        const dy = my - n.y;
+        if (Math.sqrt(dx * dx + dy * dy) <= n.radius + 6) {
+          draggingNode = n;
+          state.selectedNodeId = n.id;
+          const connectedEdge = edges.find(ed => ed.source === n.id || ed.target === n.id);
+          if (connectedEdge) updateDossierFromEdge(connectedEdge);
+          return;
+        }
+      }
+
+      // Check edge midpoint hit
+      for (const ed of edges) {
+        const s = nodes.find(n => n.id === ed.source);
+        const t = nodes.find(n => n.id === ed.target);
+        if (!s || !t) continue;
+        const midX = (s.x + t.x) / 2;
+        const midY = (s.y + t.y) / 2;
+        if (Math.abs(mx - midX) < 55 && Math.abs(my - midY) < 16) {
+          updateDossierFromEdge(ed);
+          return;
+        }
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!draggingNode) return;
+      const rect = canvas.getBoundingClientRect();
+      draggingNode.x = e.clientX - rect.left;
+      draggingNode.y = e.clientY - rect.top;
+    });
+
+    window.addEventListener('mouseup', () => {
+      draggingNode = null;
+    });
+
+    // =========================================================================
+    // ADAPTIVE ELO QUIZ DRILL LOGIC
+    // =========================================================================
+    function computeDynamicK(attempts) {
+      return Math.max(12, Math.round(48 / (1 + 0.12 * attempts)));
+    }
+
+    function computeWinProbability(userElo, questionElo) {
+      const c = 0.25; // 4-option guessing floor
+      const logistic = 1 / (1 + Math.pow(10, (questionElo - userElo) / 400));
+      return c + (1 - c) * logistic;
+    }
+
+    function renderCurrentQuizQuestion() {
+      state.quizAnswered = false;
+      const q = state.questions[state.currentQuestionIndex % state.questions.length];
+
+      document.getElementById('quiz-tier-badge').textContent = q.tier;
+      document.getElementById('quiz-Counter-label').textContent =
+        `Question ${(state.currentQuestionIndex % state.questions.length) + 1} of ${state.questions.length}`;
+      document.getElementById('quiz-q-elo').textContent = q.difficultyElo;
+      document.getElementById('quiz-source-pill').textContent = 'Sources: ' + q.sources;
+      document.getElementById('quiz-niche-bridge').textContent = q.bridge;
+      document.getElementById('quiz-prompt-text').textContent = q.prompt;
+
+      const feedbackBox = document.getElementById('quiz-feedback-box');
+      feedbackBox.classList.add('hidden');
+
+      const grid = document.getElementById('quiz-options-grid');
+      const badgeColors = [
+        'border-sky-500/40 hover:border-sky-400 bg-slate-900/90',
+        'border-amber-500/40 hover:border-amber-400 bg-slate-900/90',
+        'border-emerald-500/40 hover:border-emerald-400 bg-slate-900/90',
+        'border-purple-500/40 hover:border-purple-400 bg-slate-900/90'
+      ];
+
+      grid.innerHTML = q.options.map((opt, idx) => `
+        <button data-opt-id="${opt.id}" class="quiz-opt-btn text-left p-4 rounded-xl border ${badgeColors[idx % 4]} transition flex items-start gap-3">
+          <span class="w-6 h-6 rounded-md bg-slate-800 text-slate-200 mono text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+            ${String.fromCharCode(65 + idx)}
+          </span>
+          <span class="text-xs sm:text-sm font-medium text-slate-100 leading-snug">${opt.text}</span>
+        </button>
+      `).join('');
+
+      document.querySelectorAll('.quiz-opt-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleSelectQuizOption(btn.dataset.optId));
+      });
+
+      // Start countdown timer
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      state.timerSeconds = 20;
+      const timerEl = document.getElementById('quiz-timer-display');
+      timerEl.textContent = state.timerSeconds + 's';
+      state.timerInterval = setInterval(() => {
+        if (state.quizAnswered) return;
+        state.timerSeconds = Math.max(0, state.timerSeconds - 1);
+        timerEl.textContent = state.timerSeconds + 's';
+        if (state.timerSeconds === 0) {
+          clearInterval(state.timerInterval);
+          handleSelectQuizOption('TIMEOUT');
+        }
+      }, 1000);
+    }
+
+    function handleSelectQuizOption(selectedOptId) {
+      if (state.quizAnswered) return;
+      state.quizAnswered = true;
+      if (state.timerInterval) clearInterval(state.timerInterval);
+
+      const q = state.questions[state.currentQuestionIndex % state.questions.length];
+      const chosen = q.options.find(o => o.id === selectedOptId);
+      const correctOpt = q.options.find(o => o.isCorrect);
+      const isCorrect = Boolean(chosen && chosen.isCorrect);
+
+      // Update Multivariate Elo with dynamic uncertainty U(n)
+      const pWin = computeWinProbability(state.userElo, q.difficultyElo);
+      const kFactor = computeDynamicK(state.attempts);
+      const actual = isCorrect ? 1.0 : 0.0;
+      const delta = Math.round(kFactor * (actual - pWin));
+
+      state.userElo += delta;
+      state.attempts += 1;
+      state.streak = isCorrect ? state.streak + 1 : 0;
+
+      document.getElementById('header-elo-val').textContent = state.userElo;
+      document.getElementById('header-streak-val').textContent = state.streak;
+
+      // Highlight buttons
+      document.querySelectorAll('.quiz-opt-btn').forEach(btn => {
+        const oid = btn.dataset.optId;
+        const optObj = q.options.find(o => o.id === oid);
+        if (optObj && optObj.isCorrect) {
+          btn.className = 'quiz-opt-btn text-left p-4 rounded-xl border-2 border-emerald-400 bg-emerald-500/15 transition flex items-start gap-3';
+        } else if (oid === selectedOptId && !isCorrect) {
+          btn.className = 'quiz-opt-btn text-left p-4 rounded-xl border-2 border-rose-400 bg-rose-500/15 transition flex items-start gap-3';
+        } else {
+          btn.className = 'quiz-opt-btn text-left p-4 rounded-xl border border-slate-800 bg-slate-900/40 opacity-60 transition flex items-start gap-3';
+        }
+      });
+
+      const feedbackBox = document.getElementById('quiz-feedback-box');
+      feedbackBox.classList.remove('hidden');
+      feedbackBox.className = isCorrect
+        ? 'rounded-xl p-4 border border-emerald-500/40 bg-emerald-950/20 space-y-3'
+        : 'rounded-xl p-4 border border-rose-500/40 bg-rose-950/20 space-y-3';
+
+      document.getElementById('quiz-feedback-status').textContent = isCorrect
+        ? '✓ Spot On! Cross-Niche Link Verified'
+        : (selectedOptId === 'TIMEOUT' ? '⏱ Time Expired — Here Is the Mechanism' : '✗ Plausible Distractor Trap');
+      document.getElementById('quiz-feedback-status').className = isCorrect
+        ? 'font-bold text-sm text-emerald-300'
+        : 'font-bold text-sm text-rose-300';
+
+      const sign = delta >= 0 ? '+' : '';
+      document.getElementById('quiz-elo-delta').textContent =
+        `Elo ${sign}${delta} (P=${Math.round(pWin * 100)}%, K=${kFactor})`;
+      document.getElementById('quiz-feedback-explanation').textContent =
+        chosen ? chosen.rationale : correctOpt.rationale;
+      document.getElementById('quiz-feedback-oneliner').textContent = '"' + q.oneLiner + '"';
+    }
+
+    // =========================================================================
+    // NICHE STUDIO & POCKET TALKING POINTS RENDERERS
+    // =========================================================================
+    function renderNicheStudio() {
+      const container = document.getElementById('niche-cards-container');
+      document.getElementById('active-niche-count').textContent = `${state.niches.length} Active Policies`;
+      container.innerHTML = state.niches.map(n => `
+        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-bold text-xs sm:text-sm text-white">${n.name}</span>
+            <span class="text-[10px] mono px-2 py-0.5 rounded ${n.mode === 'STRICT_WHITELIST' ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30' : 'bg-purple-500/15 text-purple-300 border border-purple-500/30'}">
+              ${n.mode}
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            ${n.sources.map(s => `<span class="text-[11px] mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">${s}</span>`).join('')}
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">Guardrail: "${n.rule}"</p>
+        </div>
+      `).join('');
+    }
+
+    function renderPocketDeck() {
+      document.getElementById('saved-count-badge').textContent = state.savedTalkingPoints.length;
+      const listEl = document.getElementById('pocket-cards-list');
+      listEl.innerHTML = state.savedTalkingPoints.map(tp => `
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2 text-xs mono">
+              <span class="text-sky-400 font-semibold">${tp.bridge}</span>
+              <span class="text-slate-500">•</span>
+              <span class="text-slate-400">${tp.sources}</span>
+            </div>
+            <p class="text-sm font-medium text-white italic">"${tp.text}"</p>
+          </div>
+          <button data-copy="${encodeURIComponent(tp.text)}" class="copy-tp-btn shrink-0 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-sky-300 transition">
+            Copy One-Liner
+          </button>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.copy-tp-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const text = decodeURIComponent(btn.dataset.copy);
+          const temp = document.createElement('textarea');
+          temp.value = text;
+          document.body.appendChild(temp);
+          temp.select();
+          try { document.execCommand('copy'); } catch (e) {}
+          document.body.removeChild(temp);
+          showToast('Copied conversational one-liner to clipboard!');
+        });
+      });
+    }
+
+    // =========================================================================
+    // WIRE UP ALL INTERACTIVE CONTROLS
+    // =========================================================================
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      updateDossierFromEdge(state.edges[0]);
+      renderNicheStudio();
+      renderPocketDeck();
+      animateLoop();
+
+      // Navigation tabs
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      // Timeline scrubber
+      const slider = document.getElementById('timeline-slider');
+      slider.addEventListener('input', () => {
+        state.timelineDays = parseInt(slider.value, 10);
+        document.getElementById('timeline-label').textContent = state.timelineDays + ' Days';
+        updateGraphStats();
+      });
+
+      // Simulate breaking news ingestion
+      document.getElementById('btn-simulate-ingest').addEventListener('click', () => {
+        const nextItem = state.simulatedEventsQueue.shift();
+        if (!nextItem) {
+          showToast('All queued breaking streams have been ingested into the live canvas.');
+          return;
+        }
+        state.nodes.push(nextItem.node);
+        state.edges.push(nextItem.edge);
+        updateGraphStats();
+        updateDossierFromEdge(nextItem.edge);
+        showToast(`Live SSE Ingest: Linked ${nextItem.node.label} (${nextItem.node.source}) to graph!`);
+      });
+
+      // Reset graph positions
+      document.getElementById('btn-reset-graph').addEventListener('click', () => {
+        const w = canvas.width;
+        const h = canvas.height;
+        state.nodes.forEach((n, idx) => {
+          const angle = (idx / state.nodes.length) * Math.PI * 2;
+          n.x = w / 2 + Math.cos(angle) * 140;
+          n.y = h / 2 + Math.sin(angle) * 120;
+          n.vx = 0;
+          n.vy = 0;
+        });
+        showToast('Graph physics layout re-centered.');
+      });
+
+      // Bookmark from Dossier
+      document.getElementById('btn-bookmark-dossier').addEventListener('click', () => {
+        const edge = state.edges.find(e => e.id === state.selectedEdgeId) || state.edges[0];
+        state.savedTalkingPoints.unshift({
+          id: 'tp_' + Date.now(),
+          bridge: edge.verb + ' Link',
+          sources: edge.sources.map(s => s.tag).join(' × '),
+          text: edge.talkingPoint
+        });
+        renderPocketDeck();
+        showToast('Saved talking point to your Pocket Deck!');
+      });
+
+      // Jump from Graph Dossier to Quiz
+      document.getElementById('btn-test-this-link').addEventListener('click', () => {
+        switchTab('quiz');
+      });
+
+      // Quiz controls
+      document.getElementById('btn-next-question').addEventListener('click', () => {
+        state.currentQuestionIndex = (state.currentQuestionIndex + 1) % state.questions.length;
+        renderCurrentQuizQuestion();
+      });
+
+      document.getElementById('btn-save-quiz-point').addEventListener('click', () => {
+        const q = state.questions[state.currentQuestionIndex % state.questions.length];
+        state.savedTalkingPoints.unshift({
+          id: 'tp_' + Date.now(),
+          bridge: q.bridge,
+          sources: q.sources,
+          text: q.oneLiner
+        });
+        renderPocketDeck();
+        showToast('Bookmarked quiz one-liner to your Pocket Deck!');
+      });
+
+      // Niche Studio form submission
+      document.getElementById('niche-studio-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('input-niche-name').value.trim();
+        const mode = document.getElementById('select-curation-mode').value;
+        const rawSources = document.getElementById('input-pinned-sources').value;
+        const rule = document.getElementById('input-nl-guardrail').value.trim() || 'Default high-signal domain filter.';
+        if (!name) return;
+
+        const sources = rawSources.split(',').map(s => s.trim()).filter(Boolean);
+        state.niches.unshift({
+          id: 'niche_' + Date.now(),
+          name,
+          mode,
+          color: '#38bdf8',
+          sources: sources.length ? sources : ['@custom_handle'],
+          rule
+        });
+        renderNicheStudio();
+        e.target.reset();
+        showToast(`Created '${name}' with ${mode} policy!`);
+      });
+
+      // Gatekeeper simulator button
+      document.getElementById('btn-run-gatekeeper-test').addEventListener('click', () => {
+        const log = document.getElementById('gatekeeper-audit-log');
+        const entry = document.createElement('div');
+        entry.className = 'p-2.5 rounded bg-slate-900 border border-emerald-500/40 text-emerald-300';
+        entry.textContent = `[PASS ${new Date().toLocaleTimeString()}] NYT DealBook & @semiengineering passed strict whitelist & semantic bottleneck checks.`;
+        log.prepend(entry);
+        showToast('Semantic Gatekeeper audit completed.');
+      });
+    });
+  </script>
+</body>
+</html>
